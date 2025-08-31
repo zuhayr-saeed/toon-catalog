@@ -1,0 +1,1 @@
+-- Baseline migration to verify Flyway runs. Real tables will be added later.  
