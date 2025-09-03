@@ -1,6 +1,7 @@
 // src/services/chapterService.ts
 import { apiClient } from "./api";
 
+// Type for an Episode (chapter in a series)
 export interface Episode {
   id: string;
   number: number;
@@ -8,19 +9,14 @@ export interface Episode {
   releaseDate: string;
 }
 
-export interface EpisodeDetail extends Episode {
-  images: string[]; // webtoon panels or manga pages
+export interface EpisodePage {
+  content: Episode[];
+  totalPages: number;
 }
 
+// Service for interacting with episode endpoints
 export const chapterService = {
-  async list(seriesId: string, page = 0, size = 20) {
-    return apiClient.get<{ content: Episode[]; totalPages: number }>(
-      `/series/${seriesId}/episodes?page=${page}&size=${size}`
-    );
-  },
-  async get(seriesId: string, episodeId: string) {
-    return apiClient.get<EpisodeDetail>(
-      `/series/${seriesId}/episodes/${episodeId}`
-    );
-  },
+  // List episodes for a series with pagination
+  list: (seriesId: string, page = 0, size = 10): Promise<EpisodePage> =>
+    apiClient.get(`/series/${seriesId}/episodes?page=${page}&size=${size}`),
 };

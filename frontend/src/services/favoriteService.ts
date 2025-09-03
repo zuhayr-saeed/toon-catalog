@@ -1,4 +1,3 @@
-// src/services/favoriteService.ts
 import { apiClient } from "./api";
 import type { Series } from "./seriesService";
 
@@ -9,7 +8,8 @@ export const favoriteService = {
     );
   },
   async add(seriesId: string) {
-    return apiClient.post<void>(`/users/me/favorites/${seriesId}`, {});
+    // ✅ no-body POST
+    return apiClient.post<void>(`/users/me/favorites/${seriesId}`);
   },
   async remove(seriesId: string) {
     return apiClient.delete<void>(`/users/me/favorites/${seriesId}`);
