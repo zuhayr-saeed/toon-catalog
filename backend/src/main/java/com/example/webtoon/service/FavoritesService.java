@@ -26,52 +26,48 @@ public class FavoritesService {
     private final SeriesRepository seriesRepository;
     private final SeriesMapper seriesMapper;
 
-    public void addFavorite(String username, UUID seriesId) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        
-        Series series = seriesRepository.findById(seriesId)
-                .orElseThrow(() -> new IllegalArgumentException("Series not found"));
+    public void addFavorite(UUID userId, UUID seriesId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        // Check if already exists
-        if (listEntryRepository.existsByUserAndSeries(user, series)) {
-            return; // Already in favorites
-        }
+        Series series = seriesRepository.findById(seriesId)
+            .orElseThrow(() -> new IllegalArgumentException("Series not found"));
+
+        if (listEntryRepository.existsByUserAndSeries(user, series)) return;
 
         ListEntry listEntry = ListEntry.builder()
-                .user(user)
-                .series(series)
-                .build();
+            .user(user)      // ✅ fix
+            .series(series)
+            .favorite(true)
+            .build();
 
         listEntryRepository.save(listEntry);
     }
 
-    public void removeFavorite(String username, UUID seriesId) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        
+    public void removeFavorite(UUID userId, UUID seriesId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
         Series series = seriesRepository.findById(seriesId)
-                .orElseThrow(() -> new IllegalArgumentException("Series not found"));
+            .orElseThrow(() -> new IllegalArgumentException("Series not found"));
 
         listEntryRepository.deleteByUserAndSeries(user, series);
     }
 
     @Transactional(readOnly = true)
-    public Page<SeriesDto> getFavorites(String username, Pageable pageable) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+    public Page<SeriesDto> getFavorites(UUID userId, Pageable pageable) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        Page<ListEntry> listEntries = listEntryRepository.findByUser(user, pageable);
-        return listEntries.map(entry -> seriesMapper.toDto(entry.getSeries()));
+        return listEntryRepository.findByUser(user, pageable)
+            .map(entry -> seriesMapper.toDto(entry.getSeries()));
     }
 
     @Transactional(readOnly = true)
-    public boolean isFavorite(String username, UUID seriesId) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        
+    public boolean isFavorite(UUID userId, UUID seriesId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
         Series series = seriesRepository.findById(seriesId)
-                .orElseThrow(() -> new IllegalArgumentException("Series not found"));
+            .orElseThrow(() -> new IllegalArgumentException("Series not found"));
 
         return listEntryRepository.existsByUserAndSeries(user, series);
     }

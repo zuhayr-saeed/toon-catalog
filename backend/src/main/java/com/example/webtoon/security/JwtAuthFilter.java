@@ -36,6 +36,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             try {
                 Claims claims = jwtUtil.extractAllClaims(token);
                 String username = claims.getSubject();
+
                 @SuppressWarnings("unchecked")
                 List<String> roles = (List<String>) claims.get("roles");
 
@@ -43,12 +44,29 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                         .map(SimpleGrantedAuthority::new)
                         .collect(Collectors.toSet());
 
-                UsernamePasswordAuthenticationToken auth =
-                        new UsernamePasswordAuthenticationToken(username, null, authorities);
+                // ✅ Load the actual User entity from DB
+                var user = userRepository.findByUsername(username)
+                        .orElseThrow(() -> new RuntimeException("User not found: " + username));
 
-                SecurityContextHolder.getContext().setAuthentication(auth);
+                // ✅ Create Authentication with real User principal
+                UsernamePasswordAuthenticationToken authToken =
+                        new UsernamePasswordAuthenticationToken(
+                                user,
+                                null,
+                                authorities
+                        );
+
+                // ✅ Attach request details
+                authToken.setDetails(
+                        new org.springframework.security.web.authentication.WebAuthenticationDetailsSource()
+                                .buildDetails(request)
+                );
+
+                // ✅ Set authentication in context
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+
             } catch (Exception e) {
-                // invalid token - just ignore, user stays unauthenticated
+                SecurityContextHolder.clearContext(); // on failure, clear context
             }
         }
         filterChain.doFilter(request, response);

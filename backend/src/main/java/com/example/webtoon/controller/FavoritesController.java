@@ -1,5 +1,6 @@
 package com.example.webtoon.controller;
 
+import com.example.webtoon.domain.User;
 import com.example.webtoon.dto.SeriesDto;
 import com.example.webtoon.service.FavoritesService;
 import lombok.RequiredArgsConstructor;
@@ -22,8 +23,9 @@ public class FavoritesController {
     public ResponseEntity<Void> addFavorite(
             @PathVariable UUID seriesId,
             Authentication authentication) {
-        String username = authentication.getName();
-        favoritesService.addFavorite(username, seriesId);
+
+        User user = (User) authentication.getPrincipal();   // ✅ cast right
+        favoritesService.addFavorite(user.getId(), seriesId); // ✅ pass userId
         return ResponseEntity.ok().build();
     }
 
@@ -31,8 +33,8 @@ public class FavoritesController {
     public ResponseEntity<Void> removeFavorite(
             @PathVariable UUID seriesId,
             Authentication authentication) {
-        String username = authentication.getName();
-        favoritesService.removeFavorite(username, seriesId);
+        User user = (User) authentication.getPrincipal();
+        favoritesService.removeFavorite(user.getId(), seriesId);
         return ResponseEntity.ok().build();
     }
 
@@ -40,8 +42,8 @@ public class FavoritesController {
     public ResponseEntity<Page<SeriesDto>> getFavorites(
             Pageable pageable,
             Authentication authentication) {
-        String username = authentication.getName();
-        Page<SeriesDto> favorites = favoritesService.getFavorites(username, pageable);
+        User user = (User) authentication.getPrincipal();
+        Page<SeriesDto> favorites = favoritesService.getFavorites(user.getId(), pageable);
         return ResponseEntity.ok(favorites);
     }
 
@@ -49,8 +51,8 @@ public class FavoritesController {
     public ResponseEntity<Boolean> isFavorite(
             @PathVariable UUID seriesId,
             Authentication authentication) {
-        String username = authentication.getName();
-        boolean isFavorite = favoritesService.isFavorite(username, seriesId);
+        User user = (User) authentication.getPrincipal();
+        boolean isFavorite = favoritesService.isFavorite(user.getId(), seriesId);
         return ResponseEntity.ok(isFavorite);
     }
 }
