@@ -1,6 +1,8 @@
 package com.example.webtoon.repo;
 
 import com.example.webtoon.domain.Rating;
+import com.example.webtoon.domain.Series;
+import com.example.webtoon.domain.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
@@ -9,12 +11,10 @@ import java.util.UUID;
 
 public interface RatingRepository extends JpaRepository<Rating, UUID> {
 
-    Optional<Rating> findByUserIdAndSeriesId(UUID userId, UUID seriesId);
+    Optional<Rating> findByUserAndSeries(User user, Series series);
 
-    // averageRating + count per series
+    int countBySeries(Series series);
+
     @Query("SELECT AVG(r.score) FROM Rating r WHERE r.series.id = :seriesId")
-    Double findAverageScoreBySeriesId(UUID seriesId);
-
-    @Query("SELECT COUNT(r) FROM Rating r WHERE r.series.id = :seriesId")
-    Long countBySeriesId(UUID seriesId);
+    Double calculateAverageForSeries(UUID seriesId);
 }

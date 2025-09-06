@@ -1,18 +1,33 @@
 package com.example.webtoon.domain;
 
-import jakarta.persistence.*;
-import lombok.*;
-import java.util.UUID;
 import java.time.Instant;
-import java.util.Set;
+import java.util.UUID;
+
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
-@Table(name = "series")
+@Table(name = "series", indexes = {
+        @Index(name = "idx_series_external_id", columnList = "externalId", unique = true),
+        @Index(name = "idx_series_genre", columnList = "genre")
+})
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Series {
 
     @Id
@@ -22,29 +37,36 @@ public class Series {
     @Column(nullable = false)
     private String title;
 
-    @Column(nullable = false)
-    private String type; // "WEBTOON" or "WEBNOVEL"
+    private String author;
 
-    @Column(columnDefinition = "TEXT")
-    private String synopsis;
+    @Column(length = 2000)
+    private String description;
 
-    private String coverImageUrl;
+    /**
+     * Unique external identifier from scraper (e.g., site-specific ID).
+     */
+    @Column(nullable = false, unique = true, updatable = false)
+    private String externalId;
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "series_genres", joinColumns = @JoinColumn(name = "series_id"))
-    @Column(name = "genre")
-    private Set<String> genres;
+    private String genre;
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "series_tags", joinColumns = @JoinColumn(name = "series_id"))
-    @Column(name = "tag")
-    private Set<String> tags;
+    private String coverImage;
 
-    @ElementCollection(fetch = FetchType.EAGER)
-    @CollectionTable(name = "series_authors", joinColumns = @JoinColumn(name = "series_id"))
-    @Column(name = "author")
-    private Set<String> authors;
+    /**
+     * Precomputed rating fields for fast access.
+     */
+    @Builder.Default  
+    @Column(nullable = false)  
+    private Double avgRating = 0.0;  
+  
+    @Builder.Default  
+    @Column(nullable = false)  
+    private Integer ratingCount = 0;
 
-    @Builder.Default
-    private Instant createdAt = Instant.now();
+    @CreationTimestamp
+    @Column(updatable = false)
+    private Instant createdAt;
+
+    @UpdateTimestamp
+    private Instant updatedAt;
 }

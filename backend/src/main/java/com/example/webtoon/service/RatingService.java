@@ -8,8 +8,10 @@ import com.example.webtoon.dto.RatingSummary;
 import com.example.webtoon.repo.RatingRepository;
 import com.example.webtoon.repo.SeriesRepository;
 import com.example.webtoon.repo.UserRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -17,60 +19,66 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class RatingService {
+
     private final RatingRepository ratingRepository;
-    private final UserRepository userRepository;
     private final SeriesRepository seriesRepository;
+    private final UserRepository userRepository;
 
-    /**
-     * Submit or update a user's rating for a series
-     */
-    public Rating rate(UUID userId, UUID seriesId, RatingRequest req) {
+    @Transactional
+    public Rating rate(UUID userId, UUID seriesId, RatingRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new EntityNotFoundException("User not found"));
+
         Series series = seriesRepository.findById(seriesId)
-                .orElseThrow(() -> new IllegalArgumentException("Series not found"));
+                .orElseThrow(() -> new EntityNotFoundException("Series not found"));
 
-        // Validate score range
-        if (req.getScore() < 1 || req.getScore() > 5) {
-            throw new IllegalArgumentException("Score must be between 1 and 5");
-        }
-
-        // Find existing rating or create new one
-        Rating rating = ratingRepository.findByUserIdAndSeriesId(userId, seriesId)
-                .orElse(Rating.builder()
+        Rating rating = ratingRepository.findByUserAndSeries(user, series)
+                .orElseGet(() -> Rating.builder()
                         .user(user)
                         .series(series)
                         .build());
 
-        rating.setScore(req.getScore());
-        return ratingRepository.save(rating);
+        rating.setScore(request.getScore());
+        rating.setReview(request.getReview());
+        ratingRepository.save(rating);
+
+        updateSeriesAggregate(series);
+        return rating;
     }
 
-    /**
-     * Get a specific user's rating for a series
-     */
     public Optional<Rating> getUserRating(UUID userId, UUID seriesId) {
-        return ratingRepository.findByUserIdAndSeriesId(userId, seriesId);
+        User user = userRepository.findById(userId).orElseThrow();
+        Series series = seriesRepository.findById(seriesId).orElseThrow();
+        return ratingRepository.findByUserAndSeries(user, series);
     }
 
-    /**
-     * Get rating summary (average + count) for a series
-     */
     public RatingSummary getSeriesSummary(UUID seriesId) {
-        Double avg = ratingRepository.findAverageScoreBySeriesId(seriesId);
-        Long count = ratingRepository.countBySeriesId(seriesId);
-        return new RatingSummary(avg != null ? avg : 0.0, count);
+        Series series = seriesRepository.findById(seriesId).orElseThrow();
+        double avg = Optional.ofNullable(ratingRepository.calculateAverageForSeries(seriesId)).orElse(0.0);
+        int count = ratingRepository.countBySeries(series);
+        return new RatingSummary(seriesId, avg, count);
     }
 
-    /**
-     * Delete a user's rating for a series
-     */
+    @Transactional
     public boolean deleteRating(UUID userId, UUID seriesId) {
-        Optional<Rating> rating = ratingRepository.findByUserIdAndSeriesId(userId, seriesId);
-        if (rating.isPresent()) {
-            ratingRepository.delete(rating.get());
-            return true;
-        }
-        return false;
+        User user = userRepository.findById(userId).orElseThrow();
+        Series series = seriesRepository.findById(seriesId).orElseThrow();
+
+        return ratingRepository.findByUserAndSeries(user, series)
+                .map(r -> {
+                    ratingRepository.delete(r);
+                    updateSeriesAggregate(series);
+                    return true;
+                })
+                .orElse(false);
+    }
+
+    private void updateSeriesAggregate(Series series) {
+        Double newAvg = ratingRepository.calculateAverageForSeries(series.getId());
+        Integer newCount = ratingRepository.countBySeries(series);
+
+        series.setAvgRating(newAvg != null ? newAvg : 0.0);
+        series.setRatingCount(newCount);
+        seriesRepository.save(series);
     }
 }

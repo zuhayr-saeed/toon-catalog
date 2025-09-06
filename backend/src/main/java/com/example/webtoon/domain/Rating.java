@@ -2,7 +2,8 @@ package com.example.webtoon.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.UuidGenerator;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -13,34 +14,33 @@ import java.util.UUID;
 })
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class Rating {
+
     @Id
-    @UuidGenerator
-    @Column(columnDefinition = "UUID")
+    @GeneratedValue
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
     private User user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "series_id", nullable = false)
+    @ManyToOne(optional = false, fetch = FetchType.LAZY)
+    @JoinColumn(name = "series_id")
     private Series series;
 
     @Column(nullable = false)
-    private int score;
+    private int score; // 1–5 stars
 
-    @Column(nullable = false, updatable = false)
-    private Instant createdAt = Instant.now();
+    @Column(length = 2000)
+    private String review; // optional text review
 
-    @Column(nullable = false)
-    private Instant updatedAt = Instant.now();
+    @CreationTimestamp
+    @Column(updatable = false)
+    private Instant createdAt;
 
-    @PreUpdate
-    public void preUpdate() {
-        this.updatedAt = Instant.now();
-    }
+    @UpdateTimestamp
+    private Instant updatedAt;
 }

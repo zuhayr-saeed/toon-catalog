@@ -1,19 +1,31 @@
-services:  
-  db:  
-    image: postgres:16  
-    container_name: webtoon-db  
-    environment:  
-      POSTGRES_DB: webtoon  
-      POSTGRES_USER: webtoon  
-      POSTGRES_PASSWORD: webtoon  
-    ports:  
-      - "5432:5432"  
-    volumes:  
-      - db_data:/var/lib/postgresql/data  
-    healthcheck:  
-      test: ["CMD-SHELL", "pg_isready -U webtoon -d webtoon"]  
-      interval: 5s  
-      timeout: 3s  
-      retries: 10  
-volumes:  
-  db_data:  
+services:
+  db:
+    image: postgres:16
+    container_name: webtoon-db
+    environment:
+      POSTGRES_DB: webtoon
+      POSTGRES_USER: webtoon
+      POSTGRES_PASSWORD: webtoon
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U webtoon -d webtoon"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.7
+    container_name: meilisearch
+    ports:
+      - "7700:7700"
+    environment:
+      MEILI_MASTER_KEY: supersecret
+    volumes:
+      - meili_data:/meili_data
+
+volumes:
+  db_data:
+  meili_data:

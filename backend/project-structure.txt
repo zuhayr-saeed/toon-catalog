@@ -1,0 +1,232 @@
+.
+├── EOF
+├── HELP.md
+├── build
+│   ├── classes
+│   │   └── java
+│   │       └── main
+│   │           └── com
+│   │               └── example
+│   │                   └── webtoon
+│   │                       ├── WebtoonApplication.class
+│   │                       ├── config
+│   │                       │   ├── CorsConfig.class
+│   │                       │   ├── SearchConfig.class
+│   │                       │   └── SecurityConfig.class
+│   │                       ├── controller
+│   │                       │   ├── AuthController.class
+│   │                       │   ├── FavoritesController.class
+│   │                       │   ├── FollowController.class
+│   │                       │   ├── RatingController.class
+│   │                       │   └── SearchController.class
+│   │                       ├── domain
+│   │                       │   ├── Episode$EpisodeBuilder.class
+│   │                       │   ├── Episode.class
+│   │                       │   ├── Follow$FollowBuilder.class
+│   │                       │   ├── Follow.class
+│   │                       │   ├── ListEntry$ListEntryBuilder.class
+│   │                       │   ├── ListEntry.class
+│   │                       │   ├── Rating$RatingBuilder.class
+│   │                       │   ├── Rating.class
+│   │                       │   ├── ReadingStatus.class
+│   │                       │   ├── ScraperRun$ScraperRunBuilder.class
+│   │                       │   ├── ScraperRun.class
+│   │                       │   ├── Series$SeriesBuilder.class
+│   │                       │   ├── Series.class
+│   │                       │   ├── User$UserBuilder.class
+│   │                       │   └── User.class
+│   │                       ├── dto
+│   │                       │   ├── AuthResponse$AuthResponseBuilder.class
+│   │                       │   ├── AuthResponse.class
+│   │                       │   ├── LoginRequest.class
+│   │                       │   ├── RatingRequest.class
+│   │                       │   ├── RatingSummary.class
+│   │                       │   ├── RegisterRequest.class
+│   │                       │   ├── SeriesCreateRequest$SeriesCreateRequestBuilder.class
+│   │                       │   ├── SeriesCreateRequest.class
+│   │                       │   ├── SeriesDto$SeriesDtoBuilder.class
+│   │                       │   └── SeriesDto.class
+│   │                       ├── exception
+│   │                       │   └── GlobalExceptionHandler.class
+│   │                       ├── mapper
+│   │                       │   ├── SeriesMapper.class
+│   │                       │   └── SeriesMapperImpl.class
+│   │                       ├── repo
+│   │                       │   ├── EpisodeRepository.class
+│   │                       │   ├── FollowRepository.class
+│   │                       │   ├── ListEntryRepository.class
+│   │                       │   ├── RatingRepository.class
+│   │                       │   ├── ScraperRunRepository.class
+│   │                       │   ├── SeriesRepository.class
+│   │                       │   └── UserRepository.class
+│   │                       ├── security
+│   │                       │   ├── JwtAuthFilter.class
+│   │                       │   ├── JwtUtil.class
+│   │                       │   └── UserDetailsServiceImpl.class
+│   │                       ├── service
+│   │                       │   ├── AuthService.class
+│   │                       │   ├── FavoritesService.class
+│   │                       │   ├── FollowService.class
+│   │                       │   ├── RatingService.class
+│   │                       │   ├── ScraperService.class
+│   │                       │   ├── SearchService.class
+│   │                       │   ├── SeriesService.class
+│   │                       │   └── UserService.class
+│   │                       └── web
+│   │                           ├── HealthController.class
+│   │                           └── api
+│   │                               └── SeriesController.class
+│   ├── generated
+│   │   └── sources
+│   │       ├── annotationProcessor
+│   │       │   └── java
+│   │       │       └── main
+│   │       │           └── com
+│   │       │               └── example
+│   │       │                   └── webtoon
+│   │       │                       └── mapper
+│   │       │                           └── SeriesMapperImpl.java
+│   │       └── headers
+│   │           └── java
+│   │               └── main
+│   ├── libs
+│   │   ├── webtoon-0.0.1-SNAPSHOT-plain.jar
+│   │   └── webtoon-0.0.1-SNAPSHOT.jar
+│   ├── reports
+│   │   └── problems
+│   │       └── problems-report.html
+│   ├── resolvedMainClassName
+│   ├── resources
+│   │   └── main
+│   │       ├── application-dev.yml
+│   │       ├── application-prod.yml
+│   │       ├── application.properties
+│   │       ├── application.yml
+│   │       ├── db
+│   │       │   └── migration
+│   │       │       ├── V10__create_follows_table.sql
+│   │       │       ├── V11__create_scraper_runs_table.sql
+│   │       │       ├── V12__sync_schema_with_entities.sql
+│   │       │       ├── V13__add_missing_updated_at.sql
+│   │       │       ├── V14__add_missing_updated_at.sql
+│   │       │       ├── V1__baseline.sql
+│   │       │       ├── V2__domain_tables.sql
+│   │       │       ├── V3__series_collections.sql
+│   │       │       ├── V4__user_and_roles.sql
+│   │       │       ├── V5__recreate_users_and_roles.sql
+│   │       │       ├── V6__align_users_non_destructive.sql
+│   │       │       ├── V7__add_favorite_column_to_list_entry.sql
+│   │       │       ├── V8__create_ratings_table.sql
+│   │       │       └── V9__add_external_id_and_ratings_to_series.sql
+│   │       ├── static
+│   │       └── templates
+│   └── tmp
+│       ├── bootJar
+│       │   └── MANIFEST.MF
+│       ├── compileJava
+│       │   └── previous-compilation-data.bin
+│       └── jar
+│           └── MANIFEST.MF
+├── build.gradle.kts
+├── gradle
+│   └── wrapper
+│       ├── gradle-wrapper.jar
+│       └── gradle-wrapper.properties
+├── gradlew
+├── gradlew.bat
+├── lombok.config
+├── project-structure.txt
+├── settings.gradle.kts
+└── src
+    ├── main
+    │   ├── java
+    │   │   └── com
+    │   │       └── example
+    │   │           └── webtoon
+    │   │               ├── WebtoonApplication.java
+    │   │               ├── config
+    │   │               │   ├── CorsConfig.java
+    │   │               │   ├── SearchConfig.java
+    │   │               │   └── SecurityConfig.java
+    │   │               ├── controller
+    │   │               │   ├── AuthController.java
+    │   │               │   ├── FavoritesController.java
+    │   │               │   ├── FollowController.java
+    │   │               │   ├── RatingController.java
+    │   │               │   └── SearchController.java
+    │   │               ├── domain
+    │   │               │   ├── Episode.java
+    │   │               │   ├── Follow.java
+    │   │               │   ├── ListEntry.java
+    │   │               │   ├── Rating.java
+    │   │               │   ├── ReadingStatus.java
+    │   │               │   ├── ScraperRun.java
+    │   │               │   ├── Series.java
+    │   │               │   └── User.java
+    │   │               ├── dto
+    │   │               │   ├── AuthResponse.java
+    │   │               │   ├── LoginRequest.java
+    │   │               │   ├── RatingRequest.java
+    │   │               │   ├── RatingSummary.java
+    │   │               │   ├── RegisterRequest.java
+    │   │               │   ├── SeriesCreateRequest.java
+    │   │               │   └── SeriesDto.java
+    │   │               ├── exception
+    │   │               │   └── GlobalExceptionHandler.java
+    │   │               ├── mapper
+    │   │               │   └── SeriesMapper.java
+    │   │               ├── repo
+    │   │               │   ├── EpisodeRepository.java
+    │   │               │   ├── FollowRepository.java
+    │   │               │   ├── ListEntryRepository.java
+    │   │               │   ├── RatingRepository.java
+    │   │               │   ├── ScraperRunRepository.java
+    │   │               │   ├── SeriesRepository.java
+    │   │               │   └── UserRepository.java
+    │   │               ├── security
+    │   │               │   ├── JwtAuthFilter.java
+    │   │               │   └── JwtUtil.java
+    │   │               ├── service
+    │   │               │   ├── AuthService.java
+    │   │               │   ├── FavoritesService.java
+    │   │               │   ├── FollowService.java
+    │   │               │   ├── RatingService.java
+    │   │               │   ├── ScraperService.java
+    │   │               │   ├── SearchService.java
+    │   │               │   ├── SeriesService.java
+    │   │               │   └── UserService.java
+    │   │               └── web
+    │   │                   ├── HealthController.java
+    │   │                   └── api
+    │   │                       └── SeriesController.java
+    │   └── resources
+    │       ├── application-dev.yml
+    │       ├── application-prod.yml
+    │       ├── application.properties
+    │       ├── application.yml
+    │       ├── db
+    │       │   └── migration
+    │       │       ├── V10__create_follows_table.sql
+    │       │       ├── V11__create_scraper_runs_table.sql
+    │       │       ├── V12__sync_schema_with_entities.sql
+    │       │       ├── V13__add_missing_updated_at.sql
+    │       │       ├── V14__add_missing_updated_at.sql
+    │       │       ├── V1__baseline.sql
+    │       │       ├── V2__domain_tables.sql
+    │       │       ├── V3__series_collections.sql
+    │       │       ├── V4__user_and_roles.sql
+    │       │       ├── V5__recreate_users_and_roles.sql
+    │       │       ├── V6__align_users_non_destructive.sql
+    │       │       ├── V7__add_favorite_column_to_list_entry.sql
+    │       │       ├── V8__create_ratings_table.sql
+    │       │       └── V9__add_external_id_and_ratings_to_series.sql
+    │       ├── static
+    │       └── templates
+    └── test
+        └── java
+            └── com
+                └── example
+                    └── webtoon
+                        └── WebtoonApplicationTests.java
+
+73 directories, 157 files
