@@ -1,22 +1,12 @@
-// src/services/chapterService.ts
-import { apiClient } from "./api";
+import { apiClient } from './api';
+import type { EpisodeDto, Page } from '../types';
 
-// Type for an Episode (chapter in a series)
-export interface Episode {
-  id: string;
-  number: number;
-  title: string;
-  releaseDate: string;
-}
-
-export interface EpisodePage {
-  content: Episode[];
-  totalPages: number;
-}
-
-// Service for interacting with episode endpoints
 export const chapterService = {
-  // List episodes for a series with pagination
-  list: (seriesId: string, page = 0, size = 10): Promise<EpisodePage> =>
-    apiClient.get(`/series/${seriesId}/episodes?page=${page}&size=${size}`),
+  list(seriesId: string, page = 0, size = 20): Promise<Page<EpisodeDto>> {
+    return apiClient.get<Page<EpisodeDto>>(`/series/${seriesId}/episodes?page=${page}&size=${size}`);
+  },
+
+  get(seriesId: string, episodeId: string): Promise<EpisodeDto> {
+    return apiClient.get<EpisodeDto>(`/series/${seriesId}/episodes/${episodeId}`);
+  },
 };

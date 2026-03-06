@@ -32,15 +32,16 @@ public class Rating {
     private Series series;
 
     @Column(nullable = false)
-    private int score; // 1–5 stars
+    private int score; // 1–10
 
     @Column(length = 2000)
     private String review; // optional text review
 
     @CreationTimestamp
-    @Column(updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
     @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 }

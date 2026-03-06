@@ -1,8 +1,8 @@
 package com.example.webtoon.controller;
 
 import com.example.webtoon.domain.User;
-import com.example.webtoon.dto.SeriesDto;
-import com.example.webtoon.service.FavoritesService;
+import com.example.webtoon.dto.ListEntryDto;
+import com.example.webtoon.service.ListEntryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -17,42 +17,35 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class FavoritesController {
 
-    private final FavoritesService favoritesService;
+    private final ListEntryService listEntryService;
 
     @PostMapping("/{seriesId}")
-    public ResponseEntity<Void> addFavorite(
-            @PathVariable UUID seriesId,
-            Authentication authentication) {
-
-        User user = (User) authentication.getPrincipal();   // ✅ cast right
-        favoritesService.addFavorite(user.getId(), seriesId); // ✅ pass userId
+    public ResponseEntity<Void> addFavorite(@PathVariable UUID seriesId,
+                                            Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        listEntryService.addFavorite(user, seriesId);
         return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/{seriesId}")
-    public ResponseEntity<Void> removeFavorite(
-            @PathVariable UUID seriesId,
-            Authentication authentication) {
+    public ResponseEntity<Void> removeFavorite(@PathVariable UUID seriesId,
+                                               Authentication authentication) {
         User user = (User) authentication.getPrincipal();
-        favoritesService.removeFavorite(user.getId(), seriesId);
-        return ResponseEntity.ok().build();
+        listEntryService.removeFavorite(user, seriesId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping
-    public ResponseEntity<Page<SeriesDto>> getFavorites(
-            Pageable pageable,
-            Authentication authentication) {
+    public ResponseEntity<Page<ListEntryDto>> getFavorites(Pageable pageable,
+                                                           Authentication authentication) {
         User user = (User) authentication.getPrincipal();
-        Page<SeriesDto> favorites = favoritesService.getFavorites(user.getId(), pageable);
-        return ResponseEntity.ok(favorites);
+        return ResponseEntity.ok(listEntryService.getFavorites(user, pageable));
     }
 
     @GetMapping("/{seriesId}/status")
-    public ResponseEntity<Boolean> isFavorite(
-            @PathVariable UUID seriesId,
-            Authentication authentication) {
+    public ResponseEntity<Boolean> isFavorite(@PathVariable UUID seriesId,
+                                              Authentication authentication) {
         User user = (User) authentication.getPrincipal();
-        boolean isFavorite = favoritesService.isFavorite(user.getId(), seriesId);
-        return ResponseEntity.ok(isFavorite);
+        return ResponseEntity.ok(listEntryService.isFavorite(user, seriesId));
     }
 }

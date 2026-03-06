@@ -1,5 +1,6 @@
 package com.example.webtoon.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 import java.util.Set;
 
@@ -9,8 +10,9 @@ import java.util.Set;
 @AllArgsConstructor
 @Builder
 public class SeriesCreateRequest {
+    @NotBlank
     private String title;
-    private String type;   // "WEBTOON" or "WEBNOVEL"
+    private String type;
     private String synopsis;
     private String coverImageUrl;
     private Set<String> genres;

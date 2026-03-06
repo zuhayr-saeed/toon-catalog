@@ -1,24 +1,35 @@
-spring:  
-  application:  
-    name: webtoon  
-  jackson:  
-    serialization:  
-      WRITE_DATES_AS_TIMESTAMPS: false  
-  mvc:  
-    problemdetails:  
-      enabled: true  
-  profiles:  
-    default: dev  
-  
-server:  
-  port: 8080  
-  
-management:  
-  endpoints:  
-    web:  
-      exposure:  
-        include: health,info  
-  endpoint:  
-    health:  
-      probes:  
-        enabled: true  
+spring:
+  application:
+    name: webtoon
+  jackson:
+    serialization:
+      WRITE_DATES_AS_TIMESTAMPS: false
+  mvc:
+    problemdetails:
+      enabled: true
+  profiles:
+    default: dev
+
+server:
+  port: 8080
+
+app:
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
+  jwt:
+    secret: ${JWT_SECRET:dev-webtoon-jwt-secret-change-me-0123456789}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
+meili:
+  host: ${MEILI_HOST:http://localhost:7700}
+  apiKey: ${MEILI_API_KEY:supersecret}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true

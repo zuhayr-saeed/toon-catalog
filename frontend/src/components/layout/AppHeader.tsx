@@ -1,148 +1,146 @@
-import React, { useState } from "react";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from 'react';
 import {
   AppBar,
-  Toolbar,
-  Typography,
+  Avatar,
+  Box,
   Button,
   IconButton,
+  InputBase,
   Menu,
   MenuItem,
-  Box,
-  Avatar,
-} from "@mui/material";
-import MenuIcon from "@mui/icons-material/Menu";
-import { useAuth } from "../../context/AuthContext";
+  Toolbar,
+  Typography,
+} from '@mui/material';
+import MenuIcon from '@mui/icons-material/Menu';
+import SearchIcon from '@mui/icons-material/Search';
+import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 export default function AppHeader() {
   const { user, logout } = useAuth();
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [mobileMenu, setMobileMenu] = useState<null | HTMLElement>(null);
+  const [mobileMenuEl, setMobileMenuEl] = useState<null | HTMLElement>(null);
+  const [userMenuEl, setUserMenuEl] = useState<null | HTMLElement>(null);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const initialSearchValue = useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get('q') || '';
+  }, [location.search]);
+
+  const [searchValue, setSearchValue] = useState(initialSearchValue);
+
+  useEffect(() => {
+    setSearchValue(initialSearchValue);
+  }, [initialSearchValue]);
+
+  const submitSearch = () => {
+    const params = new URLSearchParams();
+    if (searchValue.trim()) {
+      params.set('q', searchValue.trim());
+    }
+    navigate(`/series${params.toString() ? `?${params.toString()}` : ''}`);
+    setMobileMenuEl(null);
+  };
 
   const handleLogout = () => {
     logout();
-    setAnchorEl(null);
-    setMobileMenu(null);
-    navigate("/");
+    setUserMenuEl(null);
+    navigate('/series');
   };
 
   return (
-    <AppBar position="sticky" color="inherit" elevation={2}>
-      <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-        {/* Logo */}
+    <AppBar position="sticky" color="inherit" elevation={1}>
+      <Toolbar sx={{ display: 'flex', gap: 2, justifyContent: 'space-between' }}>
         <Typography
           component={RouterLink}
-          to="/"
+          to="/series"
           sx={{
-            textDecoration: "none",
+            textDecoration: 'none',
+            fontSize: '1.2rem',
             fontWeight: 700,
-            fontSize: "1.25rem",
-            background: (theme) =>
-              `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
+            color: 'text.primary',
+            whiteSpace: 'nowrap',
           }}
         >
-          ToonCatalog
+          Webtoon Catalog
         </Typography>
 
-        {/* Desktop Nav */}
-        <Box sx={{ display: { xs: "none", md: "flex" }, gap: 2 }}>
-          <Button component={RouterLink} to="/" color="inherit">
-            Home
-          </Button>
-          <Button component={RouterLink} to="/series" color="inherit">
-            Series
-          </Button>
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 999,
+            px: 1,
+            py: 0.25,
+            width: '100%',
+            maxWidth: 460,
+            backgroundColor: 'background.paper',
+          }}
+        >
+          <InputBase
+            placeholder="Search title or synopsis"
+            value={searchValue}
+            onChange={(event) => setSearchValue(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                submitSearch();
+              }
+            }}
+            sx={{ ml: 1, flex: 1 }}
+          />
+          <IconButton onClick={submitSearch} size="small" aria-label="search">
+            <SearchIcon fontSize="small" />
+          </IconButton>
+        </Box>
+
+        <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 1 }}>
+          <Button component={RouterLink} to="/series" color="inherit">Series</Button>
+          {user && <Button component={RouterLink} to="/library" color="inherit">My List</Button>}
           {user && (
-            <Button component={RouterLink} to="/library" color="inherit">
-              My Library
+            <Button component={RouterLink} to={`/users/${user.username}`} color="inherit">
+              Profile
+            </Button>
+          )}
+          {!user && (
+            <>
+              <Button component={RouterLink} to="/login" variant="outlined">Sign In</Button>
+              <Button component={RouterLink} to="/register" variant="contained">Sign Up</Button>
+            </>
+          )}
+          {user && (
+            <Button
+              onClick={(event) => setUserMenuEl(event.currentTarget)}
+              startIcon={<Avatar sx={{ width: 28, height: 28 }}>{user.username[0]?.toUpperCase()}</Avatar>}
+            >
+              {user.username}
             </Button>
           )}
         </Box>
 
-        {/* User Section */}
-        {user ? (
-          <>
-            <Button
-              onClick={(e) => setAnchorEl(e.currentTarget)}
-              startIcon={
-                <Avatar sx={{ bgcolor: "primary.main" }}>
-                  {(user?.username?.charAt(0) ??
-                    user?.email?.charAt(0) ??
-                    "U").toUpperCase()}
-                </Avatar>
-              }
-              sx={{ ml: 2 }}
-            >
-              {user?.username || user?.email}
-            </Button>
-            <Menu
-              anchorEl={anchorEl}
-              open={Boolean(anchorEl)}
-              onClose={() => setAnchorEl(null)}
-            >
-              {user?.email && <MenuItem disabled>{user.email}</MenuItem>}
-              <MenuItem onClick={handleLogout} sx={{ color: "error.main" }}>
-                Sign Out
-              </MenuItem>
-            </Menu>
-          </>
-        ) : (
-          <Box sx={{ display: { xs: "none", md: "flex" }, gap: 2 }}>
-            <Button
-              component={RouterLink}
-              to="/login"
-              color="primary"
-              variant="outlined"
-            >
-              Sign In
-            </Button>
-            <Button component={RouterLink} to="/register" variant="contained">
-              Sign Up
-            </Button>
-          </Box>
-        )}
-
-        {/* Mobile Menu */}
-        <IconButton
-          edge="end"
-          sx={{ display: { xs: "flex", md: "none" } }}
-          onClick={(e) => setMobileMenu(e.currentTarget)}
-        >
+        <IconButton sx={{ display: { xs: 'flex', md: 'none' } }} onClick={(event) => setMobileMenuEl(event.currentTarget)}>
           <MenuIcon />
         </IconButton>
-        <Menu
-          anchorEl={mobileMenu}
-          open={Boolean(mobileMenu)}
-          onClose={() => setMobileMenu(null)}
-        >
-          <MenuItem component={RouterLink} to="/">
-            Home
-          </MenuItem>
-          <MenuItem component={RouterLink} to="/series">
-            Series
-          </MenuItem>
+
+        <Menu anchorEl={mobileMenuEl} open={Boolean(mobileMenuEl)} onClose={() => setMobileMenuEl(null)}>
+          <MenuItem component={RouterLink} to="/series" onClick={() => setMobileMenuEl(null)}>Series</MenuItem>
+          {user && <MenuItem component={RouterLink} to="/library" onClick={() => setMobileMenuEl(null)}>My List</MenuItem>}
           {user && (
-            <MenuItem component={RouterLink} to="/library">
-              My Library
+            <MenuItem component={RouterLink} to={`/users/${user.username}`} onClick={() => setMobileMenuEl(null)}>
+              Profile
             </MenuItem>
           )}
-          {!user &&
-            [
-              <MenuItem key="login" component={RouterLink} to="/login">
-                Sign In
-              </MenuItem>,
-              <MenuItem key="register" component={RouterLink} to="/register">
-                Sign Up
-              </MenuItem>,
-            ]}
-          {user && (
-            <MenuItem onClick={handleLogout} sx={{ color: "error.main" }}>
-              Sign Out
-            </MenuItem>
-          )}
+          {!user && <MenuItem component={RouterLink} to="/login" onClick={() => setMobileMenuEl(null)}>Sign In</MenuItem>}
+          {!user && <MenuItem component={RouterLink} to="/register" onClick={() => setMobileMenuEl(null)}>Sign Up</MenuItem>}
+        </Menu>
+
+        <Menu anchorEl={userMenuEl} open={Boolean(userMenuEl)} onClose={() => setUserMenuEl(null)}>
+          <MenuItem component={RouterLink} to={`/users/${user?.username}`} onClick={() => setUserMenuEl(null)}>
+            {user?.email}
+          </MenuItem>
+          <MenuItem onClick={handleLogout}>Sign Out</MenuItem>
         </Menu>
       </Toolbar>
     </AppBar>

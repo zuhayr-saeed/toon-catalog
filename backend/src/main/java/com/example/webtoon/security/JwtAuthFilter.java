@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -39,16 +40,17 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
                 @SuppressWarnings("unchecked")
                 List<String> roles = (List<String>) claims.get("roles");
+                if (roles == null) {
+                    roles = Collections.emptyList();
+                }
 
                 Set<SimpleGrantedAuthority> authorities = roles.stream()
                         .map(SimpleGrantedAuthority::new)
                         .collect(Collectors.toSet());
 
-                // ✅ Load the actual User entity from DB
                 var user = userRepository.findByUsername(username)
                         .orElseThrow(() -> new RuntimeException("User not found: " + username));
 
-                // ✅ Create Authentication with real User principal
                 UsernamePasswordAuthenticationToken authToken =
                         new UsernamePasswordAuthenticationToken(
                                 user,
@@ -56,17 +58,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                                 authorities
                         );
 
-                // ✅ Attach request details
                 authToken.setDetails(
                         new org.springframework.security.web.authentication.WebAuthenticationDetailsSource()
                                 .buildDetails(request)
                 );
 
-                // ✅ Set authentication in context
                 SecurityContextHolder.getContext().setAuthentication(authToken);
 
             } catch (Exception e) {
-                SecurityContextHolder.clearContext(); // on failure, clear context
+                SecurityContextHolder.clearContext();
             }
         }
         filterChain.doFilter(request, response);

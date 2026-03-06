@@ -1,104 +1,90 @@
-// Base types matching your Spring Boot backend entities
+export type ReadingStatus = 'READING' | 'COMPLETED' | 'ON_HOLD' | 'DROPPED' | 'PLAN_TO_READ';
 
-export interface User {
-  id: string;
-  email: string;
-  roles: string[];
-  createdAt: string;
-}
-
-export interface Story {
-  id: string;
-  title: string;
-  author: string;
-  genre: string;
-  description: string;
-  coverImage: string;
-  createdAt: string;
-  averageRating?: number;
-  totalRatings?: number;
-}
-
-export interface Rating {
-  id: string;
-  user: User;
-  story: Story;
-  rating: number; // 1-5
-  review?: string;
-  createdAt: string;
-}
-
-// API Response types
-export interface PaginatedResponse<T> {
+export interface Page<T> {
   content: T[];
   totalElements: number;
   totalPages: number;
   size: number;
-  number: number; // current page (0-based)
+  number: number;
   first: boolean;
   last: boolean;
 }
 
-export interface ApiResponse<T> {
-  data: T;
-  message?: string;
-  success: boolean;
-}
-
-// Authentication types
-export interface LoginRequest {
-  email: string;
-  password: string;
-}
-
-export interface RegisterRequest {
-  email: string;
-  password: string;
-  confirmPassword: string;
-}
-
 export interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
-  user: User;
+  token: string;
+  username: string;
+  email: string;
 }
 
-export interface RefreshTokenResponse {
-  accessToken: string;
+export interface SeriesDto {
+  id: string;
+  title: string;
+  type: string;
+  synopsis: string | null;
+  coverImageUrl: string | null;
+  genres: string[];
+  tags: string[];
+  authors: string[];
+  createdAt: string;
+  avgRating: number;
+  ratingCount: number;
 }
 
-// Rating/Review types
-export interface CreateRatingRequest {
-  storyId: string;
-  rating: number;
-  review?: string;
+export interface ListEntryDto {
+  id: string;
+  userId: string;
+  username: string;
+  seriesId: string;
+  seriesTitle: string;
+  seriesCoverImageUrl: string | null;
+  status: ReadingStatus;
+  progress: number;
+  favorite: boolean;
+  userScore: number | null;
+  lastUpdated: string;
 }
 
-export interface UpdateRatingRequest {
-  rating: number;
-  review?: string;
+export interface ListEntryUpsertRequest {
+  status?: ReadingStatus;
+  progress?: number;
+  favorite?: boolean;
 }
 
-// Query parameters
-export interface StoriesQueryParams {
-  page?: number;
-  size?: number;
-  genre?: string;
-  sortBy?: 'title' | 'author' | 'createdAt' | 'averageRating';
-  sortDirection?: 'asc' | 'desc';
+export interface RatingDto {
+  id: string;
+  seriesId: string;
+  username: string;
+  score: number;
+  review: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
-export interface RatingsQueryParams {
-  page?: number;
-  size?: number;
-  sortBy?: 'rating' | 'createdAt';
-  sortDirection?: 'asc' | 'desc';
+export interface RatingSummary {
+  seriesId: string;
+  avg: number;
+  count: number;
 }
 
-// Error types
-export interface ApiError {
-  message: string;
-  status: number;
-  timestamp: string;
-  path: string;
+export interface EpisodeDto {
+  id: string;
+  seriesId: string;
+  number: number;
+  title: string;
+  releaseDate: string | null;
+}
+
+export interface FollowDto {
+  username: string;
+  followedAt: string;
+}
+
+export interface UserProfileDto {
+  username: string;
+  joinedAt: string;
+  followersCount: number;
+  followingCount: number;
+  favoritesCount: number;
+  statusCounts: Record<ReadingStatus, number>;
+  followedByMe: boolean;
 }

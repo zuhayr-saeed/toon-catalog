@@ -2,6 +2,7 @@ package com.example.webtoon.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.UpdateTimestamp;
 import java.util.UUID;
 import java.time.Instant;
 
@@ -39,11 +40,7 @@ public class ListEntry {
     @Builder.Default
     private boolean favorite = false;
 
-    @Builder.Default
-    private Instant lastUpdated = Instant.now();
-
-    @PreUpdate
-    public void onUpdate() {
-        this.lastUpdated = Instant.now();
-    }
+    @UpdateTimestamp
+    @Column(name = "last_updated", nullable = false)
+    private Instant lastUpdated;
 }

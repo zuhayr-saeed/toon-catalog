@@ -1,28 +1,28 @@
-import { apiClient } from "./api";
-
-export interface Rating {
-  id: string;
-  storyId: string;
-  rating: number;
-  review?: string;
-  createdAt: string;
-}
+import { ApiError, apiClient } from './api';
+import type { RatingDto, RatingSummary } from '../types';
 
 export const ratingService = {
-  getUserRating: async (seriesId: string): Promise<Rating | null> => {
+  async getUserRating(seriesId: string): Promise<RatingDto | null> {
     try {
-      return await apiClient.get<Rating>(`/ratings/${seriesId}/me`);
-    } catch (err: any) {
-      if (err.message?.includes("204") || err.message?.includes("404")) return null;
-      throw err;
+      const rating = await apiClient.get<RatingDto | null>(`/ratings/${seriesId}/me`);
+      return rating;
+    } catch (error) {
+      if (error instanceof ApiError && (error.status === 204 || error.status === 404)) {
+        return null;
+      }
+      throw error;
     }
   },
 
-  create: async (seriesId: string, rating: number, review?: string): Promise<Rating> => {
-    return apiClient.post(`/ratings/${seriesId}`, { rating, review });
+  async save(seriesId: string, score: number, review?: string): Promise<RatingDto> {
+    return apiClient.post<RatingDto>(`/ratings/${seriesId}`, { score, review });
   },
 
-  delete: async (seriesId: string): Promise<void> => {
-    return apiClient.delete(`/ratings/${seriesId}`);
+  async delete(seriesId: string): Promise<void> {
+    return apiClient.delete<void>(`/ratings/${seriesId}`);
+  },
+
+  async getSummary(seriesId: string): Promise<RatingSummary> {
+    return apiClient.get<RatingSummary>(`/ratings/${seriesId}/summary`);
   },
 };

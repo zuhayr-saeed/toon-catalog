@@ -2,6 +2,7 @@ package com.example.webtoon.service;
 
 import com.example.webtoon.domain.Follow;
 import com.example.webtoon.domain.User;
+import com.example.webtoon.dto.FollowDto;
 import com.example.webtoon.repo.FollowRepository;
 import com.example.webtoon.repo.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -10,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -20,16 +20,11 @@ public class FollowService {
     private final UserRepository userRepository;
 
     @Transactional
-    public void followUser(UUID followerId, UUID followingId) {
-        if (followerId.equals(followingId)) {
+    public void followUser(User follower, String targetUsername) {
+        User following = findByUsername(targetUsername);
+        if (follower.getId().equals(following.getId())) {
             throw new IllegalArgumentException("You cannot follow yourself");
         }
-
-        User follower = userRepository.findById(followerId)
-                .orElseThrow(() -> new EntityNotFoundException("Follower not found"));
-
-        User following = userRepository.findById(followingId)
-                .orElseThrow(() -> new EntityNotFoundException("User to follow not found"));
 
         if (!followRepository.existsByFollowerAndFollowing(follower, following)) {
             Follow follow = Follow.builder()
@@ -41,26 +36,53 @@ public class FollowService {
     }
 
     @Transactional
-    public void unfollowUser(UUID followerId, UUID followingId) {
-        User follower = userRepository.findById(followerId)
-                .orElseThrow(() -> new EntityNotFoundException("Follower not found"));
-
-        User following = userRepository.findById(followingId)
-                .orElseThrow(() -> new EntityNotFoundException("User to follow not found"));
-
+    public void unfollowUser(User follower, String targetUsername) {
+        User following = findByUsername(targetUsername);
         followRepository.findByFollowerAndFollowing(follower, following)
                 .ifPresent(followRepository::delete);
     }
 
-    public List<Follow> getFollowers(UUID userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
-        return followRepository.findByFollowing(user);
+    @Transactional(readOnly = true)
+    public boolean isFollowing(User follower, String targetUsername) {
+        User following = findByUsername(targetUsername);
+        return followRepository.existsByFollowerAndFollowing(follower, following);
     }
 
-    public List<Follow> getFollowing(UUID userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found"));
-        return followRepository.findByFollower(user);
+    @Transactional(readOnly = true)
+    public List<FollowDto> getFollowers(String username) {
+        User user = findByUsername(username);
+        return followRepository.findByFollowing(user).stream()
+                .map(follow -> FollowDto.builder()
+                        .username(follow.getFollower().getUsername())
+                        .followedAt(follow.getCreatedAt())
+                        .build())
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<FollowDto> getFollowing(String username) {
+        User user = findByUsername(username);
+        return followRepository.findByFollower(user).stream()
+                .map(follow -> FollowDto.builder()
+                        .username(follow.getFollowing().getUsername())
+                        .followedAt(follow.getCreatedAt())
+                        .build())
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public long countFollowers(User user) {
+        return followRepository.countByFollowing(user);
+    }
+
+    @Transactional(readOnly = true)
+    public long countFollowing(User user) {
+        return followRepository.countByFollower(user);
+    }
+
+    @Transactional(readOnly = true)
+    public User findByUsername(String username) {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new EntityNotFoundException("User not found: " + username));
     }
 }

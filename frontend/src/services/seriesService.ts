@@ -1,40 +1,34 @@
 import { apiClient } from './api';
-
-export interface Series {
-  id: string;
-  title: string;
-  type: 'WEBTOON' | 'WEBNOVEL' | string;
-  synopsis: string;
-  coverImageUrl?: string;
-  genres: string[];
-  tags: string[];
-  authors: string[];
-  createdAt: string;
-}
-
-export interface Page<T> {
-  content: T[];
-  totalElements: number;
-  totalPages: number;
-  size: number;
-  number: number;
-  first: boolean;
-  last: boolean;
-}
+import type { Page, SeriesDto, RatingDto } from '../types';
 
 export interface SeriesQuery {
   page?: number;
   size?: number;
+  q?: string;
+  genre?: string;
+  tag?: string;
+  sort?: 'top_rated' | 'popular' | 'newest' | 'title';
 }
 
 export const seriesService = {
-  list: async (params: SeriesQuery = { page: 0, size: 12 }): Promise<Page<Series>> => {
+  async list(params: SeriesQuery = { page: 0, size: 12 }): Promise<Page<SeriesDto>> {
     const search = new URLSearchParams();
     if (params.page !== undefined) search.set('page', String(params.page));
     if (params.size !== undefined) search.set('size', String(params.size));
-    const qs = search.toString();
-    const url = qs ? `/series?${qs}` : '/series';
-    return apiClient.get<Page<Series>>(url);
+    if (params.q) search.set('q', params.q);
+    if (params.genre) search.set('genre', params.genre);
+    if (params.tag) search.set('tag', params.tag);
+    if (params.sort) search.set('sort', params.sort);
+
+    const query = search.toString();
+    return apiClient.get<Page<SeriesDto>>(query ? `/series?${query}` : '/series');
   },
-  get: async (id: string): Promise<Series> => apiClient.get<Series>(`/series/${id}`),
+
+  async get(id: string): Promise<SeriesDto> {
+    return apiClient.get<SeriesDto>(`/series/${id}`);
+  },
+
+  async getReviews(seriesId: string, page = 0, size = 10): Promise<Page<RatingDto>> {
+    return apiClient.get<Page<RatingDto>>(`/series/${seriesId}/reviews?page=${page}&size=${size}&sort=createdAt,desc`);
+  },
 };

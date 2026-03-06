@@ -1,64 +1,75 @@
 package com.example.webtoon.mapper;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-
 import com.example.webtoon.domain.Series;
 import com.example.webtoon.dto.SeriesCreateRequest;
 import com.example.webtoon.dto.SeriesDto;
+import org.springframework.stereotype.Component;
 
-@Mapper(componentModel = "spring")
-public interface SeriesMapper {
+import java.util.LinkedHashSet;
+import java.util.Set;
 
-    // Custom mappers for genre <-> genres
-    default Set<String> mapGenre(String genre) {
-        if (genre == null || genre.isBlank()) return Collections.emptySet();
-        return Arrays.stream(genre.split(","))
-                .map(String::trim)
-                .collect(Collectors.toSet());
+@Component
+public class SeriesMapper {
+
+    public SeriesDto toDto(Series entity) {
+        return SeriesDto.builder()
+                .id(entity.getId())
+                .title(entity.getTitle())
+                .type(entity.getType())
+                .synopsis(entity.getSynopsis())
+                .coverImageUrl(entity.getCoverImageUrl())
+                .genres(copy(entity.getGenres()))
+                .tags(copy(entity.getTags()))
+                .authors(copy(entity.getAuthors()))
+                .createdAt(entity.getCreatedAt())
+                .avgRating(entity.getAvgRating())
+                .ratingCount(entity.getRatingCount())
+                .build();
     }
 
-    default String mapGenres(Set<String> genres) {
-        if (genres == null || genres.isEmpty()) return null;
-        return String.join(",", genres);
+    public Series fromCreateRequest(SeriesCreateRequest request) {
+        return Series.builder()
+                .title(request.getTitle())
+                .type(normalizeType(request.getType()))
+                .synopsis(request.getSynopsis())
+                .coverImageUrl(request.getCoverImageUrl())
+                .genres(copy(request.getGenres()))
+                .tags(copy(request.getTags()))
+                .authors(copy(request.getAuthors()))
+                .build();
     }
 
-    // Entity -> DTO
-    @Mapping(target = "genres", expression = "java(mapGenre(entity.getGenre()))")
-    @Mapping(target = "coverImageUrl", source = "coverImage")
-    @Mapping(target = "type", ignore = true)
-    @Mapping(target = "synopsis", ignore = true)
-    @Mapping(target = "tags", ignore = true)
-    @Mapping(target = "authors", ignore = true)
-    SeriesDto toDto(Series entity);
+    public void updateSeries(Series series, SeriesCreateRequest request) {
+        series.setTitle(request.getTitle());
+        series.setType(normalizeType(request.getType()));
+        series.setSynopsis(request.getSynopsis());
+        series.setCoverImageUrl(request.getCoverImageUrl());
+        series.setGenres(copy(request.getGenres()));
+        series.setTags(copy(request.getTags()));
+        series.setAuthors(copy(request.getAuthors()));
+    }
 
-    // DTO -> Entity
-    @Mapping(target = "genre", expression = "java(mapGenres(dto.getGenres()))")
-    @Mapping(target = "coverImage", source = "coverImageUrl")
-    @Mapping(target = "externalId", ignore = true)
-    @Mapping(target = "avgRating", ignore = true)
-    @Mapping(target = "ratingCount", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "description", source = "synopsis", ignore = true) // if mismatch
-    @Mapping(target = "author", ignore = true) // fix later
-    Series toEntity(SeriesDto dto);
+    private Set<String> copy(Set<String> values) {
+        if (values == null) {
+            return new LinkedHashSet<>();
+        }
+        LinkedHashSet<String> cleaned = new LinkedHashSet<>();
+        for (String value : values) {
+            if (value == null) {
+                continue;
+            }
+            String normalized = value.trim();
+            if (!normalized.isEmpty()) {
+                cleaned.add(normalized);
+            }
+        }
+        return cleaned;
+    }
 
-    // CreateRequest DTO -> Entity
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "externalId", ignore = true)
-    @Mapping(target = "avgRating", ignore = true)
-    @Mapping(target = "ratingCount", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "author", ignore = true)
-    @Mapping(target = "description", ignore = true)
-    @Mapping(target = "genre", ignore = true)
-    @Mapping(target = "coverImage", ignore = true)
-    Series toEntity(SeriesCreateRequest dto);
+    private String normalizeType(String type) {
+        if (type == null || type.isBlank()) {
+            return "WEBTOON";
+        }
+        return type.trim().toUpperCase();
+    }
 }

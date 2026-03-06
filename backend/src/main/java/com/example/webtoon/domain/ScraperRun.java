@@ -30,20 +30,21 @@ public class ScraperRun {
     private UUID id;
 
     @CreationTimestamp
-    @Column(nullable = false, updatable = false)
+    @Column(name = "started_at", nullable = false, updatable = false)
     private Instant startedAt;
 
+    @Column(name = "finished_at")
     private Instant finishedAt;
 
     @Builder.Default
-    @Column(nullable = false)
+    @Column(name = "series_added", nullable = false)
     private int seriesAdded = 0;
 
     @Builder.Default
-    @Column(nullable = false)
+    @Column(name = "series_updated", nullable = false)
     private int seriesUpdated = 0;
 
     @Builder.Default
-    @Column(nullable = false)
+    @Column(name = "series_failed", nullable = false)
     private int seriesFailed = 0;
 }

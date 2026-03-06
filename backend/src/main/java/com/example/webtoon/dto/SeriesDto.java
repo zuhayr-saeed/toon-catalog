@@ -20,4 +20,6 @@ public class SeriesDto {
     private Set<String> tags;
     private Set<String> authors;
     private Instant createdAt;
+    private Double avgRating;
+    private Integer ratingCount;
 }

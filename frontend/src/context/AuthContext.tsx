@@ -1,13 +1,13 @@
-// src/context/AuthContext.tsx
-import React, { createContext, useContext, useEffect, useState } from "react";
-import type { AuthResponse } from "../services/authService";
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext, useEffect, useState } from 'react';
+import type { AuthResponse } from '../types';
 import {
   login as loginApi,
   register as registerApi,
   saveAuth,
   clearAuth,
   getAuth,
-} from "../services/authService";
+} from '../services/authService';
 
 interface AuthContextType {
   user: AuthResponse | null;
@@ -19,43 +19,39 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Load user from localStorage on mount
   useEffect(() => {
-    const storedAuth = getAuth();
-    if (storedAuth) {
-      setUser(storedAuth);
+    const stored = getAuth();
+    if (stored) {
+      setUser(stored);
     }
   }, []);
 
-  // --- Login ---
   const login = async (username: string, password: string) => {
     setIsLoading(true);
     try {
-      const res = await loginApi(username, password);
-      saveAuth(res);
-      setUser(res);
+      const auth = await loginApi(username, password);
+      saveAuth(auth);
+      setUser(auth);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // --- Register ---
   const register = async (username: string, email: string, password: string) => {
     setIsLoading(true);
     try {
-      const res = await registerApi(username, email, password);
-      saveAuth(res);
-      setUser(res);
+      const auth = await registerApi(username, email, password);
+      saveAuth(auth);
+      setUser(auth);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // --- Logout ---
   const logout = () => {
     clearAuth();
     setUser(null);
@@ -66,11 +62,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-// --- Hook for easier usage ---
-export const useAuth = () => {
+export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within an AuthProvider");
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
   return context;
-};
+}

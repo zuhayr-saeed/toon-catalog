@@ -42,17 +42,18 @@ public class ScraperService {
                 // Insert new
                 Series newSeries = Series.builder()
                         .title("Sample Webtoon")
-                        .author("Jane Doe")
-                        .genre("Romance")
-                        .description("Scraped test description")
-                        .coverImage("https://cdn.example.com/sample.jpg")
+                        .type("WEBTOON")
+                        .authors(java.util.Set.of("Jane Doe"))
+                        .genres(java.util.Set.of("Romance"))
+                        .synopsis("Scraped test description")
+                        .coverImageUrl("https://cdn.example.com/sample.jpg")
                         .externalId(externalId)
                         .build();
                 seriesRepository.save(newSeries);
                 added++;
             } else {
                 // Update existing
-                existing.setDescription("Updated description from scraper");
+                existing.setSynopsis("Updated description from scraper");
                 seriesRepository.save(existing);
                 updated++;
             }

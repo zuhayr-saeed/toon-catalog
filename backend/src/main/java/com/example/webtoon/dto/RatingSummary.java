@@ -9,6 +9,6 @@ import lombok.Data;
 @AllArgsConstructor
 public class RatingSummary {
     private UUID seriesId;
-    private double avgRating;
-    private int ratingCount;
+    private double avg;
+    private int count;
 }

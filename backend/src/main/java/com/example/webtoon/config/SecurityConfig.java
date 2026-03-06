@@ -29,27 +29,24 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            // Disable CSRF for APIs (JWT already provides protection)
+            .cors(cors -> {})
             .csrf(csrf -> csrf.disable())
-
-            // Stateless sessions (every request must carry JWT)
             .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-            // Define endpoint access rules
             .authorizeHttpRequests(auth -> auth
-                // Public endpoints
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers("/api/v1/healthz").permitAll()
-                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()
-
-                // (Optional) Allow GET on series endpoints publicly
+                .requestMatchers("/healthz").permitAll()
+                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                .requestMatchers("/api/v1/users/me/**").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/v1/series/**").permitAll()
-
-                // Everything else requires authentication
+                .requestMatchers(HttpMethod.GET, "/api/v1/search/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/ratings/*/summary").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/users/*").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/users/*/list").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/users/*/followers").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/users/*/following").permitAll()
                 .anyRequest().authenticated()
             )
-
-            // Add our JWT filter before username/password filter
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -65,7 +62,7 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder(12); // Strong hashing
+        return new BCryptPasswordEncoder(12);
     }
 
     @Bean

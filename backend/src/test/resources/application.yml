@@ -1,0 +1,24 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:webtoon;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: false
+    open-in-view: false
+  flyway:
+    enabled: false
+
+app:
+  jwt:
+    secret: test-webtoon-jwt-secret-012345678901234567890123
+    expiration-ms: 3600000
+
+meili:
+  host: http://localhost:7700
+  apiKey: test

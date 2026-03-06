@@ -1,23 +1,22 @@
-spring:  
-  datasource:  
-    url: jdbc:postgresql://localhost:5432/webtoon  
-    username: webtoon  
-    password: webtoon  
-  jpa:  
-    hibernate:  
-      ddl-auto: validate  
-    properties:  
-      hibernate:  
-        format_sql: true  
-        jdbc:  
-          time_zone: UTC  
-    open-in-view: false  
-  flyway:  
-    enabled: true  
-    locations: classpath:db/migration  
-  
-logging:  
-  level:  
-    org.springframework.security: INFO  
-    org.hibernate.SQL: DEBUG  
-    org.hibernate.orm.jdbc.bind: TRACE  
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/webtoon}
+    username: ${DB_USERNAME:webtoon}
+    password: ${DB_PASSWORD:webtoon}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc:
+          time_zone: UTC
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+logging:
+  level:
+    org.springframework.security: INFO
+    org.hibernate.SQL: INFO

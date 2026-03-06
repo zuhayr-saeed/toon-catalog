@@ -2,6 +2,7 @@ package com.example.webtoon.domain;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 import java.util.UUID;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -32,6 +33,7 @@ public class Episode {
 
     private LocalDate releaseDate;
 
-    @Builder.Default
-    private Instant createdAt = Instant.now();
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
 }
