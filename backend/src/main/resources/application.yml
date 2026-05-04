@@ -7,6 +7,8 @@ spring:
   mvc:
     problemdetails:
       enabled: true
+  cache:
+    type: simple
   profiles:
     default: dev
 
@@ -19,6 +21,17 @@ app:
   jwt:
     secret: ${JWT_SECRET:dev-webtoon-jwt-secret-change-me-0123456789}
     expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+  auth-cookie:
+    secure: ${AUTH_COOKIE_SECURE:false}
+    same-site: ${AUTH_COOKIE_SAME_SITE:Lax}
+  scraper:
+    enabled: ${APP_SCRAPER_ENABLED:false}
+  bootstrap:
+    admin:
+      username: ${APP_BOOTSTRAP_ADMIN_USERNAME:}
+      email: ${APP_BOOTSTRAP_ADMIN_EMAIL:}
+      password: ${APP_BOOTSTRAP_ADMIN_PASSWORD:}
+    seed-demo: ${APP_BOOTSTRAP_SEED_DEMO:false}
 
 meili:
   host: ${MEILI_HOST:http://localhost:7700}

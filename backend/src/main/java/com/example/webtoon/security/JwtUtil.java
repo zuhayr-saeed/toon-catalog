@@ -11,15 +11,20 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Date;
 import java.util.Set;
+import java.util.stream.Stream;
 
 @Component
 public class JwtUtil {
+    private static final String DEV_DEFAULT_SECRET = "dev-webtoon-jwt-secret-change-me-0123456789";
 
     @Value("${app.jwt.secret}")
     private String jwtSecret;
 
     @Value("${app.jwt.expiration-ms:86400000}")
     private long expirationMs;
+
+    @Value("${spring.profiles.active:}")
+    private String activeProfiles;
 
     private Key key;
 
@@ -34,6 +39,11 @@ public class JwtUtil {
             secretBytes = Base64.getDecoder().decode(jwtSecret);
         } catch (IllegalArgumentException ignored) {
             secretBytes = jwtSecret.getBytes(StandardCharsets.UTF_8);
+        }
+        if (isProdProfile() && (DEV_DEFAULT_SECRET.equals(jwtSecret)
+                || jwtSecret.startsWith("replace-with")
+                || secretBytes.length < 32)) {
+            throw new IllegalStateException("Production JWT_SECRET must be a unique secret with at least 32 bytes");
         }
         this.key = Keys.hmacShaKeyFor(secretBytes);
     }
@@ -61,5 +71,11 @@ public class JwtUtil {
                 .setSigningKey(key)
                 .build()
                 .parseClaimsJws(token);
+    }
+
+    private boolean isProdProfile() {
+        return Stream.of(activeProfiles.split(","))
+                .map(String::trim)
+                .anyMatch("prod"::equalsIgnoreCase);
     }
 }

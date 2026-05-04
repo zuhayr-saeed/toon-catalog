@@ -1,12 +1,16 @@
 package com.example.webtoon.service;
 
 import com.example.webtoon.domain.Series;
+import com.example.webtoon.config.CacheNames;
 import com.example.webtoon.dto.SeriesCreateRequest;
 import com.example.webtoon.dto.SeriesDto;
 import com.example.webtoon.mapper.SeriesMapper;
 import com.example.webtoon.repo.SeriesRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -59,6 +63,7 @@ public class SeriesService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = CacheNames.SERIES_DETAIL, key = "#id")
     public SeriesDto getSeriesById(UUID id) {
         return seriesMapper.toDto(getSeriesEntityById(id));
     }
@@ -70,6 +75,7 @@ public class SeriesService {
     }
 
     @Transactional
+    @CacheEvict(cacheNames = CacheNames.SERIES_SEARCH, allEntries = true)
     public SeriesDto createSeries(SeriesCreateRequest request) {
         Series entity = seriesMapper.fromCreateRequest(request);
         Series saved = seriesRepository.save(entity);
@@ -78,6 +84,10 @@ public class SeriesService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.SERIES_DETAIL, key = "#id"),
+            @CacheEvict(cacheNames = CacheNames.SERIES_SEARCH, allEntries = true)
+    })
     public SeriesDto updateSeries(UUID id, SeriesCreateRequest request) {
         Series existing = getSeriesEntityById(id);
         seriesMapper.updateSeries(existing, request);
@@ -87,6 +97,11 @@ public class SeriesService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.SERIES_DETAIL, key = "#id"),
+            @CacheEvict(cacheNames = CacheNames.RATING_SUMMARY, key = "#id"),
+            @CacheEvict(cacheNames = CacheNames.SERIES_SEARCH, allEntries = true)
+    })
     public void deleteSeries(UUID id) {
         Series existing = getSeriesEntityById(id);
         seriesRepository.delete(existing);

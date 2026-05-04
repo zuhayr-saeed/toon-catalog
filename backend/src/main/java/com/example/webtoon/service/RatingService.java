@@ -3,6 +3,7 @@ package com.example.webtoon.service;
 import com.example.webtoon.domain.Rating;
 import com.example.webtoon.domain.Series;
 import com.example.webtoon.domain.User;
+import com.example.webtoon.config.CacheNames;
 import com.example.webtoon.dto.RatingDto;
 import com.example.webtoon.dto.RatingRequest;
 import com.example.webtoon.dto.RatingSummary;
@@ -10,6 +11,9 @@ import com.example.webtoon.repo.RatingRepository;
 import com.example.webtoon.repo.SeriesRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -26,6 +30,11 @@ public class RatingService {
     private final SeriesRepository seriesRepository;
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.RATING_SUMMARY, key = "#seriesId"),
+            @CacheEvict(cacheNames = CacheNames.SERIES_DETAIL, key = "#seriesId"),
+            @CacheEvict(cacheNames = CacheNames.SERIES_SEARCH, allEntries = true)
+    })
     public RatingDto rate(User user, UUID seriesId, RatingRequest request) {
         Series series = findSeries(seriesId);
 
@@ -51,6 +60,7 @@ public class RatingService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(cacheNames = CacheNames.RATING_SUMMARY, key = "#seriesId")
     public RatingSummary getSeriesSummary(UUID seriesId) {
         Series series = findSeries(seriesId);
         double avg = Optional.ofNullable(ratingRepository.calculateAverageForSeries(seriesId)).orElse(0.0);
@@ -66,6 +76,11 @@ public class RatingService {
     }
 
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(cacheNames = CacheNames.RATING_SUMMARY, key = "#seriesId"),
+            @CacheEvict(cacheNames = CacheNames.SERIES_DETAIL, key = "#seriesId"),
+            @CacheEvict(cacheNames = CacheNames.SERIES_SEARCH, allEntries = true)
+    })
     public boolean deleteRating(User user, UUID seriesId) {
         Series series = findSeries(seriesId);
 

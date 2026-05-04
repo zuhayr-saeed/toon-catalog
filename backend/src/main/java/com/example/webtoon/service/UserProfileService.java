@@ -1,6 +1,7 @@
 package com.example.webtoon.service;
 
 import com.example.webtoon.domain.ListEntry;
+import com.example.webtoon.domain.Rating;
 import com.example.webtoon.domain.ReadingStatus;
 import com.example.webtoon.domain.User;
 import com.example.webtoon.dto.ListEntryDto;
@@ -15,6 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -49,8 +53,9 @@ public class UserProfileService {
     @Transactional(readOnly = true)
     public Page<ListEntryDto> getPublicList(String username, ReadingStatus status, Boolean favorite, Pageable pageable) {
         User profileUser = followService.findByUsername(username);
-        return filterList(profileUser, status, favorite, pageable)
-                .map(entry -> toListEntryDto(entry, profileUser));
+        Page<ListEntry> entries = filterList(profileUser, status, favorite, pageable);
+        Map<UUID, Integer> scoresBySeriesId = loadScores(profileUser, entries);
+        return entries.map(entry -> toListEntryDto(entry, profileUser, scoresBySeriesId.get(entry.getSeries().getId())));
     }
 
     private Page<ListEntry> filterList(User user, ReadingStatus status, Boolean favorite, Pageable pageable) {
@@ -66,11 +71,7 @@ public class UserProfileService {
         return listEntryRepository.findByUser(user, pageable);
     }
 
-    private ListEntryDto toListEntryDto(ListEntry entry, User owner) {
-        Integer score = ratingRepository.findByUserIdAndSeriesId(owner.getId(), entry.getSeries().getId())
-                .map(rating -> rating.getScore())
-                .orElse(null);
-
+    private ListEntryDto toListEntryDto(ListEntry entry, User owner, Integer score) {
         return ListEntryDto.builder()
                 .id(entry.getId())
                 .userId(owner.getId())
@@ -84,5 +85,17 @@ public class UserProfileService {
                 .userScore(score)
                 .lastUpdated(entry.getLastUpdated())
                 .build();
+    }
+
+    private Map<UUID, Integer> loadScores(User user, Page<ListEntry> entries) {
+        Set<UUID> seriesIds = entries.getContent().stream()
+                .map(entry -> entry.getSeries().getId())
+                .collect(Collectors.toSet());
+        if (seriesIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return ratingRepository.findAllByUserAndSeriesIds(user.getId(), seriesIds).stream()
+                .collect(Collectors.toMap(rating -> rating.getSeries().getId(), Rating::getScore));
     }
 }

@@ -7,10 +7,10 @@ import com.example.webtoon.repo.FollowRepository;
 import com.example.webtoon.repo.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -49,25 +49,17 @@ public class FollowService {
     }
 
     @Transactional(readOnly = true)
-    public List<FollowDto> getFollowers(String username) {
+    public Page<FollowDto> getFollowers(String username, Pageable pageable) {
         User user = findByUsername(username);
-        return followRepository.findByFollowing(user).stream()
-                .map(follow -> FollowDto.builder()
-                        .username(follow.getFollower().getUsername())
-                        .followedAt(follow.getCreatedAt())
-                        .build())
-                .toList();
+        return followRepository.findByFollowing(user, pageable)
+                .map(this::toFollowerDto);
     }
 
     @Transactional(readOnly = true)
-    public List<FollowDto> getFollowing(String username) {
+    public Page<FollowDto> getFollowing(String username, Pageable pageable) {
         User user = findByUsername(username);
-        return followRepository.findByFollower(user).stream()
-                .map(follow -> FollowDto.builder()
-                        .username(follow.getFollowing().getUsername())
-                        .followedAt(follow.getCreatedAt())
-                        .build())
-                .toList();
+        return followRepository.findByFollower(user, pageable)
+                .map(this::toFollowingDto);
     }
 
     @Transactional(readOnly = true)
@@ -84,5 +76,19 @@ public class FollowService {
     public User findByUsername(String username) {
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new EntityNotFoundException("User not found: " + username));
+    }
+
+    private FollowDto toFollowerDto(Follow follow) {
+        return FollowDto.builder()
+                .username(follow.getFollower().getUsername())
+                .followedAt(follow.getCreatedAt())
+                .build();
+    }
+
+    private FollowDto toFollowingDto(Follow follow) {
+        return FollowDto.builder()
+                .username(follow.getFollowing().getUsername())
+                .followedAt(follow.getCreatedAt())
+                .build();
     }
 }

@@ -5,19 +5,22 @@ import com.example.webtoon.domain.User;
 import com.example.webtoon.dto.ListEntryDto;
 import com.example.webtoon.dto.UserProfileDto;
 import com.example.webtoon.service.UserProfileService;
+import com.example.webtoon.web.Pageables;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Set;
+
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 public class UserProfileController {
+    private static final Set<String> LIST_SORTS = Set.of("lastUpdated", "status", "progress", "favorite");
 
     private final UserProfileService userProfileService;
 
@@ -39,13 +42,7 @@ public class UserProfileController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "lastUpdated,desc") String sort) {
 
-        String[] sortTokens = sort.split(",");
-        String property = sortTokens.length > 0 ? sortTokens[0] : "lastUpdated";
-        Sort.Direction direction = sortTokens.length > 1
-                ? Sort.Direction.fromOptionalString(sortTokens[1]).orElse(Sort.Direction.DESC)
-                : Sort.Direction.DESC;
-
-        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, property));
+        Pageable pageable = Pageables.fromSortParam(page, size, sort, LIST_SORTS, "lastUpdated", Sort.Direction.DESC);
         return ResponseEntity.ok(userProfileService.getPublicList(username, status, favorite, pageable));
     }
 }

@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.webtoon.dto.SeriesDto;
 import com.example.webtoon.service.SearchService;
+import com.example.webtoon.web.Pageables;
 
 import lombok.RequiredArgsConstructor;
 
@@ -28,8 +29,15 @@ public class SearchController {
             @RequestParam(required = false) String sort,
             @RequestParam(defaultValue = "20") int limit,
             @RequestParam(defaultValue = "0") int offset) {
-        
-        List<SeriesDto> results = searchService.search(q, genre, tag, sort, limit, offset);
+
+        List<SeriesDto> results = searchService.search(
+                q,
+                genre,
+                tag,
+                sort,
+                Pageables.boundedSearchLimit(limit),
+                Pageables.boundedSearchOffset(offset)
+        );
         return ResponseEntity.ok(results);
     }
 }

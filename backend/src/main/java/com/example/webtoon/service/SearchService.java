@@ -1,6 +1,7 @@
 package com.example.webtoon.service;
 
 import com.example.webtoon.domain.Series;
+import com.example.webtoon.config.CacheNames;
 import com.example.webtoon.dto.SeriesDto;
 import com.example.webtoon.mapper.SeriesMapper;
 import com.example.webtoon.repo.SeriesRepository;
@@ -13,6 +14,7 @@ import com.meilisearch.sdk.model.Settings;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -93,6 +95,10 @@ public class SearchService {
         }
     }
 
+    @Cacheable(
+            cacheNames = CacheNames.SERIES_SEARCH,
+            key = "{#query, #genre, #tag, #sortBy, #limit, #offset}"
+    )
     public List<SeriesDto> search(String query, String genre, String tag, String sortBy, int limit, int offset) {
         try {
             Index index = meilisearchClient.index(INDEX_NAME);
@@ -115,6 +121,8 @@ public class SearchService {
             return hits.stream()
                     .map(hit -> gson.fromJson(gson.toJson(hit), SeriesDto.class))
                     .toList();
+        } catch (IllegalArgumentException e) {
+            throw e;
         } catch (Exception e) {
             log.warn("Meilisearch query failed, fallback to DB. query='{}' error={}", query, e.getMessage());
             return seriesRepository.findAll().stream()
@@ -151,27 +159,32 @@ public class SearchService {
         if (sortBy == null || sortBy.isBlank()) {
             return null;
         }
-        return switch (sortBy) {
+        String normalized = sortBy.trim();
+        return switch (normalized) {
             case "top_rated" -> "avgRating:desc";
             case "popular" -> "ratingCount:desc";
             case "newest" -> "createdAt:desc";
             case "title" -> "title:asc";
-            default -> null;
+            default -> throw new IllegalArgumentException("Unsupported search sort: " + normalized);
         };
     }
 
     private String buildFilter(String genre, String tag) {
         StringBuilder filter = new StringBuilder();
         if (genre != null && !genre.isBlank()) {
-            filter.append("genres = \\\"" + genre.trim() + "\\\"");
+            filter.append("genres = \"").append(escapeFilterValue(genre.trim())).append("\"");
         }
         if (tag != null && !tag.isBlank()) {
             if (filter.length() > 0) {
                 filter.append(" AND ");
             }
-            filter.append("tags = \\\"" + tag.trim() + "\\\"");
+            filter.append("tags = \"").append(escapeFilterValue(tag.trim())).append("\"");
         }
         return filter.toString();
+    }
+
+    private String escapeFilterValue(String value) {
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
     private Map<String, Object> toSearchDocument(Series series) {

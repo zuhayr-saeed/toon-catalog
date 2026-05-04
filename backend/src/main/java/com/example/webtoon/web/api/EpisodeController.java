@@ -2,9 +2,9 @@ package com.example.webtoon.web.api;
 
 import com.example.webtoon.dto.EpisodeDto;
 import com.example.webtoon.service.EpisodeService;
+import com.example.webtoon.web.Pageables;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
@@ -23,7 +23,7 @@ public class EpisodeController {
     public ResponseEntity<Page<EpisodeDto>> getEpisodes(@PathVariable UUID seriesId,
                                                         @RequestParam(defaultValue = "0") int page,
                                                         @RequestParam(defaultValue = "20") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "number"));
+        Pageable pageable = Pageables.bounded(page, size, Sort.by(Sort.Direction.ASC, "number"));
         return ResponseEntity.ok(episodeService.getEpisodes(seriesId, pageable));
     }
 

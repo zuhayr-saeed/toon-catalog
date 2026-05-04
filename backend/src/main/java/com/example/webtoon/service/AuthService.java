@@ -17,33 +17,31 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
-    public AuthResponse register(RegisterRequest req) {
-        if (userRepository.existsByUsername(req.getUsername())) {
+    public AuthSession register(RegisterRequest req) {
+        String username = req.getUsername().trim();
+        String email = req.getEmail().trim().toLowerCase();
+
+        if (userRepository.existsByUsername(username)) {
             throw new IllegalArgumentException("Username already taken");
         }
-        if (userRepository.existsByEmail(req.getEmail())) {
+        if (userRepository.existsByEmail(email)) {
             throw new IllegalArgumentException("Email already registered");
         }
 
         User user = new User();
-        user.setUsername(req.getUsername());
-        user.setEmail(req.getEmail());
+        user.setUsername(username);
+        user.setEmail(email);
         user.setPassword(passwordEncoder.encode(req.getPassword()));
         user.getRoles().add("ROLE_USER");
         userRepository.save(user);
 
         String token = jwtUtil.generateToken(user.getUsername(), user.getRoles());
-        
-        // Return complete AuthResponse with user details
-        return AuthResponse.builder()
-                .token(token)
-                .username(user.getUsername())  // ✅ Add username
-                .email(user.getEmail())        // ✅ Add email
-                .build();
+
+        return new AuthSession(toResponse(user), token);
     }
 
-    public AuthResponse login(LoginRequest req) {
-        User user = userRepository.findByUsername(req.getUsername())
+    public AuthSession login(LoginRequest req) {
+        User user = userRepository.findByUsername(req.getUsername().trim())
                 .orElseThrow(() -> new IllegalArgumentException("Invalid credentials"));
 
         if (!passwordEncoder.matches(req.getPassword(), user.getPassword())) {
@@ -51,12 +49,21 @@ public class AuthService {
         }
 
         String token = jwtUtil.generateToken(user.getUsername(), user.getRoles());
-        
-        // Return complete AuthResponse with user details
+
+        return new AuthSession(toResponse(user), token);
+    }
+
+    public AuthResponse currentUser(User user) {
+        return toResponse(user);
+    }
+
+    private AuthResponse toResponse(User user) {
         return AuthResponse.builder()
-                .token(token)
-                .username(user.getUsername())  // ✅ Add username
-                .email(user.getEmail())        // ✅ Add email
+                .username(user.getUsername())
+                .email(user.getEmail())
                 .build();
+    }
+
+    public record AuthSession(AuthResponse response, String token) {
     }
 }

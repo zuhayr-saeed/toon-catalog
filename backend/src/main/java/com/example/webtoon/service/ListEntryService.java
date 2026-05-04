@@ -1,6 +1,7 @@
 package com.example.webtoon.service;
 
 import com.example.webtoon.domain.ListEntry;
+import com.example.webtoon.domain.Rating;
 import com.example.webtoon.domain.ReadingStatus;
 import com.example.webtoon.domain.Series;
 import com.example.webtoon.domain.User;
@@ -16,8 +17,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -29,15 +33,14 @@ public class ListEntryService {
 
     @Transactional(readOnly = true)
     public Page<ListEntryDto> getMyList(User user, ReadingStatus status, Boolean favorite, Pageable pageable) {
-        return filterEntries(user, status, favorite, pageable)
-                .map(entry -> toDto(entry, user));
+        return toDtoPage(filterEntries(user, status, favorite, pageable), user);
     }
 
     @Transactional(readOnly = true)
     public Optional<ListEntryDto> getMyListEntry(User user, UUID seriesId) {
         Series series = findSeries(seriesId);
         return listEntryRepository.findByUserAndSeries(user, series)
-                .map(entry -> toDto(entry, user));
+                .map(entry -> toDto(entry, user, findScore(user, seriesId)));
     }
 
     @Transactional
@@ -64,7 +67,7 @@ public class ListEntryService {
         }
 
         ListEntry saved = listEntryRepository.save(entry);
-        return toDto(saved, user);
+        return toDto(saved, user, findScore(user, seriesId));
     }
 
     @Transactional
@@ -116,8 +119,7 @@ public class ListEntryService {
 
     @Transactional(readOnly = true)
     public Page<ListEntryDto> getFavorites(User user, Pageable pageable) {
-        return listEntryRepository.findByUserAndFavoriteTrue(user, pageable)
-                .map(entry -> toDto(entry, user));
+        return toDtoPage(listEntryRepository.findByUserAndFavoriteTrue(user, pageable), user);
     }
 
     private Page<ListEntry> filterEntries(User user, ReadingStatus status, Boolean favorite, Pageable pageable) {
@@ -133,11 +135,12 @@ public class ListEntryService {
         return listEntryRepository.findByUser(user, pageable);
     }
 
-    private ListEntryDto toDto(ListEntry entry, User user) {
-        Integer score = ratingRepository.findByUserIdAndSeriesId(user.getId(), entry.getSeries().getId())
-                .map(rating -> rating.getScore())
-                .orElse(null);
+    private Page<ListEntryDto> toDtoPage(Page<ListEntry> entries, User user) {
+        Map<UUID, Integer> scoresBySeriesId = loadScores(user, entries);
+        return entries.map(entry -> toDto(entry, user, scoresBySeriesId.get(entry.getSeries().getId())));
+    }
 
+    private ListEntryDto toDto(ListEntry entry, User user, Integer score) {
         return ListEntryDto.builder()
                 .id(entry.getId())
                 .userId(user.getId())
@@ -151,6 +154,24 @@ public class ListEntryService {
                 .userScore(score)
                 .lastUpdated(entry.getLastUpdated())
                 .build();
+    }
+
+    private Integer findScore(User user, UUID seriesId) {
+        return ratingRepository.findByUserIdAndSeriesId(user.getId(), seriesId)
+                .map(Rating::getScore)
+                .orElse(null);
+    }
+
+    private Map<UUID, Integer> loadScores(User user, Page<ListEntry> entries) {
+        Set<UUID> seriesIds = entries.getContent().stream()
+                .map(entry -> entry.getSeries().getId())
+                .collect(Collectors.toSet());
+        if (seriesIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return ratingRepository.findAllByUserAndSeriesIds(user.getId(), seriesIds).stream()
+                .collect(Collectors.toMap(rating -> rating.getSeries().getId(), Rating::getScore));
     }
 
     private Series findSeries(UUID seriesId) {

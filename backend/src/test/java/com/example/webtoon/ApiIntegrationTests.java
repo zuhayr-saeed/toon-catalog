@@ -2,8 +2,9 @@ package com.example.webtoon;
 
 import com.example.webtoon.domain.Series;
 import com.example.webtoon.repo.SeriesRepository;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.webtoon.security.AuthCookieService;
+import com.example.webtoon.security.CsrfCookieService;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -11,12 +12,14 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -26,9 +29,6 @@ class ApiIntegrationTests {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Autowired
     private SeriesRepository seriesRepository;
@@ -49,10 +49,11 @@ class ApiIntegrationTests {
                                 }
                                 """.formatted(username, email, password)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").isNotEmpty())
-                .andExpect(jsonPath("$.username").value(username));
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(jsonPath("$.username").value(username))
+                .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("HttpOnly")));
 
-        mockMvc.perform(post("/api/v1/auth/login")
+        MvcResult loginResult = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -61,8 +62,16 @@ class ApiIntegrationTests {
                                 }
                                 """.formatted(username, password)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").isNotEmpty())
-                .andExpect(jsonPath("$.username").value(username));
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(jsonPath("$.username").value(username))
+                .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("HttpOnly")))
+                .andReturn();
+
+        mockMvc.perform(get("/api/v1/auth/me")
+                        .cookie(toAuthCookies(loginResult).authCookie()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value(username))
+                .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString(CsrfCookieService.CSRF_COOKIE_NAME)));
     }
 
     @Test
@@ -75,12 +84,67 @@ class ApiIntegrationTests {
     }
 
     @Test
+    void catalogWritesRequireAdminRole() throws Exception {
+        AuthCookies authCookies = registerAndLogin();
+
+        mockMvc.perform(post("/api/v1/series")
+                        .with(auth(authCookies))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "title": "User Submitted Series",
+                                  "type": "WEBTOON",
+                                  "synopsis": "Should require moderation",
+                                  "coverImageUrl": "https://example.com/cover.jpg",
+                                  "genres": ["Action"],
+                                  "tags": ["Fantasy"],
+                                  "authors": ["Author"]
+                                }
+                                """))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void unsafeCookieRequestRejectsMissingCsrfToken() throws Exception {
+        AuthCookies authCookies = registerAndLogin();
+        Series series = createSeries("CSRF Test");
+
+        mockMvc.perform(post("/api/v1/ratings/{seriesId}", series.getId())
+                        .cookie(authCookies.authCookie())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "score": 8
+                                }
+                                """))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void validationRejectsWeakRegistrationPayload() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "username": "bad username",
+                                  "email": "not-an-email",
+                                  "password": "short"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Validation failed"))
+                .andExpect(jsonPath("$.errors.username").exists())
+                .andExpect(jsonPath("$.errors.email").exists())
+                .andExpect(jsonPath("$.errors.password").exists());
+    }
+
+    @Test
     void listEntryCreateAndUpdate() throws Exception {
-        String token = registerAndLogin();
+        AuthCookies authCookies = registerAndLogin();
         Series series = createSeries("List Test");
 
         mockMvc.perform(put("/api/v1/users/me/list/{seriesId}", series.getId())
-                        .header("Authorization", "Bearer " + token)
+                        .with(auth(authCookies))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -95,7 +159,7 @@ class ApiIntegrationTests {
                 .andExpect(jsonPath("$.favorite").value(true));
 
         mockMvc.perform(put("/api/v1/users/me/list/{seriesId}", series.getId())
-                        .header("Authorization", "Bearer " + token)
+                        .with(auth(authCookies))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -110,18 +174,18 @@ class ApiIntegrationTests {
                 .andExpect(jsonPath("$.favorite").value(false));
 
         mockMvc.perform(get("/api/v1/users/me/list/{seriesId}", series.getId())
-                        .header("Authorization", "Bearer " + token))
+                        .cookie(authCookies.authCookie()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("COMPLETED"));
     }
 
     @Test
     void favoritesToggleKeepsListEntryWhenProgressExists() throws Exception {
-        String token = registerAndLogin();
+        AuthCookies authCookies = registerAndLogin();
         Series series = createSeries("Fav Test");
 
         mockMvc.perform(put("/api/v1/users/me/list/{seriesId}", series.getId())
-                        .header("Authorization", "Bearer " + token)
+                        .with(auth(authCookies))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -133,21 +197,21 @@ class ApiIntegrationTests {
                 .andExpect(status().isOk());
 
         mockMvc.perform(post("/api/v1/users/me/favorites/{seriesId}", series.getId())
-                        .header("Authorization", "Bearer " + token))
+                        .with(auth(authCookies)))
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/api/v1/users/me/list/{seriesId}", series.getId())
-                        .header("Authorization", "Bearer " + token))
+                        .cookie(authCookies.authCookie()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.favorite").value(true))
                 .andExpect(jsonPath("$.progress").value(2));
 
         mockMvc.perform(delete("/api/v1/users/me/favorites/{seriesId}", series.getId())
-                        .header("Authorization", "Bearer " + token))
+                        .with(auth(authCookies)))
                 .andExpect(status().isNoContent());
 
         mockMvc.perform(get("/api/v1/users/me/list/{seriesId}", series.getId())
-                        .header("Authorization", "Bearer " + token))
+                        .cookie(authCookies.authCookie()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.favorite").value(false))
                 .andExpect(jsonPath("$.progress").value(2));
@@ -155,11 +219,11 @@ class ApiIntegrationTests {
 
     @Test
     void ratingsCreateGetAndDelete() throws Exception {
-        String token = registerAndLogin();
+        AuthCookies authCookies = registerAndLogin();
         Series series = createSeries("Rating Test");
 
         mockMvc.perform(post("/api/v1/ratings/{seriesId}", series.getId())
-                        .header("Authorization", "Bearer " + token)
+                        .with(auth(authCookies))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -171,7 +235,7 @@ class ApiIntegrationTests {
                 .andExpect(jsonPath("$.score").value(8));
 
         mockMvc.perform(get("/api/v1/ratings/{seriesId}/me", series.getId())
-                        .header("Authorization", "Bearer " + token))
+                        .cookie(authCookies.authCookie()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.score").value(8));
 
@@ -180,16 +244,50 @@ class ApiIntegrationTests {
                 .andExpect(jsonPath("$.count").value(1));
 
         mockMvc.perform(delete("/api/v1/ratings/{seriesId}", series.getId())
-                        .header("Authorization", "Bearer " + token))
+                        .with(auth(authCookies)))
                 .andExpect(status().isNoContent());
 
+        mockMvc.perform(get("/api/v1/ratings/{seriesId}/summary", series.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.count").value(0));
+
         mockMvc.perform(get("/api/v1/ratings/{seriesId}/me", series.getId())
-                        .header("Authorization", "Bearer " + token))
+                        .cookie(authCookies.authCookie()))
                 .andExpect(status().isNoContent());
     }
 
-    private String registerAndLogin() throws Exception {
+    @Test
+    void socialListsArePaginated() throws Exception {
+        AuthUser alice = registerAndLogin("alice_" + UUID.randomUUID().toString().substring(0, 8));
+        AuthUser bob = registerAndLogin("bob_" + UUID.randomUUID().toString().substring(0, 8));
+
+        mockMvc.perform(post("/api/v1/users/{username}/follow", bob.username())
+                        .with(auth(alice.authCookies())))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/users/{username}/followers?page=0&size=1", bob.username()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].username").value(alice.username()))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.size").value(1));
+
+        mockMvc.perform(get("/api/v1/users/{username}/following?page=0&size=1", alice.username()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].username").value(bob.username()))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.size").value(1));
+
+        mockMvc.perform(get("/api/v1/users/{username}/followers?sort=username,asc", bob.username()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Bad request"));
+    }
+
+    private AuthCookies registerAndLogin() throws Exception {
         String username = "user_" + UUID.randomUUID().toString().substring(0, 8);
+        return registerAndLogin(username).authCookies();
+    }
+
+    private AuthUser registerAndLogin(String username) throws Exception {
         String email = username + "@example.com";
         String password = "password123";
 
@@ -215,8 +313,7 @@ class ApiIntegrationTests {
                 .andExpect(status().isOk())
                 .andReturn();
 
-        JsonNode body = objectMapper.readTree(loginResult.getResponse().getContentAsString());
-        return body.get("token").asText();
+        return new AuthUser(username, toAuthCookies(loginResult));
     }
 
     private Series createSeries(String title) {
@@ -230,5 +327,32 @@ class ApiIntegrationTests {
                 .authors(Set.of("Author"))
                 .build();
         return seriesRepository.save(series);
+    }
+
+    private RequestPostProcessor auth(AuthCookies authCookies) {
+        return request -> {
+            request.setCookies(authCookies.authCookie(), authCookies.csrfCookie());
+            request.addHeader(CsrfCookieService.CSRF_HEADER_NAME, authCookies.csrfCookie().getValue());
+            return request;
+        };
+    }
+
+    private AuthCookies toAuthCookies(MvcResult result) {
+        return new AuthCookies(
+                extractCookie(result, AuthCookieService.AUTH_COOKIE_NAME),
+                extractCookie(result, CsrfCookieService.CSRF_COOKIE_NAME)
+        );
+    }
+
+    private Cookie extractCookie(MvcResult result, String cookieName) {
+        Cookie cookie = result.getResponse().getCookie(cookieName);
+        assertThat(cookie).isNotNull();
+        return new Cookie(cookie.getName(), cookie.getValue());
+    }
+
+    private record AuthCookies(Cookie authCookie, Cookie csrfCookie) {
+    }
+
+    private record AuthUser(String username, AuthCookies authCookies) {
     }
 }

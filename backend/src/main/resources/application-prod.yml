@@ -1,4 +1,15 @@
 spring:
+  cache:
+    type: redis
+    redis:
+      key-prefix: "webtoon-catalog::"
+      use-key-prefix: true
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2s
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
